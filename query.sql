@@ -36,4 +36,9 @@ WHERE id = (
     WHERE state = 0
     ORDER BY inserted ASC
     LIMIT 1
+)
+AND type = (
+    SELECT id
+    FROM type
+    WHERE name = ?
 );

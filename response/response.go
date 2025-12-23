@@ -1,12 +1,10 @@
-package main
+package response
 
 type Response struct {
 	Success bool   		`json:"success"`
 	Message string 		`json:"message"`
 	Data	interface{} `json:"data"`
 }
-
-//add a function on the struct that returns a default response
 
 func DefaultResponse() Response {
 	return Response{

@@ -21,10 +21,15 @@ WHERE id = (
     ORDER BY inserted ASC
     LIMIT 1
 )
+AND type = (
+    SELECT id
+    FROM type
+    WHERE name = ?
+)
 `
 
-func (q *Queries) ActivateOldestQuote(ctx context.Context) error {
-	_, err := q.db.ExecContext(ctx, activateOldestQuote)
+func (q *Queries) ActivateOldestQuote(ctx context.Context, name string) error {
+	_, err := q.db.ExecContext(ctx, activateOldestQuote, name)
 	return err
 }
 
