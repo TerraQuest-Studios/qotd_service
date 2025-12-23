@@ -201,7 +201,7 @@ func main() {
 		payload := webhook.Payload{
 			Content: "This is a test webhook message from QOTD Service!",
 			UserName: "QOTD Bot",
-			AvatarURL: "https://qotd.terraqueststudios.net/assets/logo.png",
+			AvatarURL: "https://"+os.Getenv("SERVER_DOMAIN")+"/assets/logo.png",
 		}
 		err := webhook.Exec(webhookURL, payload)
 		if err != nil {
