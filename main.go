@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"time"
@@ -13,7 +14,7 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/go-co-op/gocron"
 	"github.com/go-chi/chi/v5"
-    "github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-sql-driver/mysql"
 	"github.com/TerraQuest-Studios/qotd_service/quotes"
 	"github.com/TerraQuest-Studios/qotd_service/response"
@@ -65,14 +66,34 @@ func main() {
 	// Create a new scheduler in UTC
 	s := gocron.NewScheduler(time.UTC)
 
-	// Define a job to run every 2 seconds
-	/* s.Every(2).Seconds().Do(func() {
-		fmt.Println("Scheduled task running:", time.Now())
-	}) */
-	//set a job to run every day at 11:30pm est (translated to utc)
-	/* s.Every(1).Day().At("04:30").Do(func() {
-		fmt.Println("Scheduled task running at 11:30pm EST (04:30 UTC):", time.Now())
-	}) */
+	//set a job to run every day at 11/12:30pm est (translated to utc)
+	//i dont really care about daylight savings time changes for this
+	s.Every(1).Day().At("04:30").Do(func() {
+		fmt.Println("daily webhook job started")
+
+		Type := "normal"
+		q.ActivateOldestQuote(context.Background(), Type)
+		quote, gerr := q.GetLatestQuoteByType(context.Background(), Type)
+		if gerr != nil {
+			fmt.Println("error fetching quote for webhook:", gerr.Error())
+			return
+		}
+
+		webhookURL := os.Getenv("WEBHOOK_URL")
+		payload := webhook.Payload{
+			Content: quote.Quote,
+			UserName: "QOTD Bot",
+			AvatarURL: "https://"+os.Getenv("SERVER_DOMAIN")+"/assets/logo.png",
+		}
+		err := webhook.Exec(webhookURL, payload)
+		if err != nil {
+			fmt.Println("error sending webhook:", err.Error())
+			return
+		}
+		
+		fmt.Println("daily webhook job completed successfully")
+		return
+	})
 	
 	// Start the scheduler in a separate goroutine
 	s.StartAsync()
@@ -197,9 +218,24 @@ func main() {
 		return
 	})
 	/* r.Get("/api/v2/dev/sendtestwebhook", func(w http.ResponseWriter, r *http.Request) {
+		Type := "normal"
+		q.ActivateOldestQuote(r.Context(), Type)
+		quote, gerr := q.GetLatestQuoteByType(r.Context(), Type)
+		if gerr != nil {
+			w.WriteHeader(500)
+			w.Header().Set("Content-Type", "application/json")
+
+			if os.Getenv("DEBUG") == "true" {
+				json.NewEncoder(w).Encode(response.ServerErrorResponse(err.Error()))
+			} else {
+				json.NewEncoder(w).Encode(response.ServerErrorResponse("error fetching quote for webhook"))
+			}
+			return
+		}
+
 		webhookURL := os.Getenv("WEBHOOK_URL")
 		payload := webhook.Payload{
-			Content: "This is a test webhook message from QOTD Service!",
+			Content: quote.Quote,
 			UserName: "QOTD Bot",
 			AvatarURL: "https://"+os.Getenv("SERVER_DOMAIN")+"/assets/logo.png",
 		}
