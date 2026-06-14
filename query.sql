@@ -31,14 +31,11 @@ LIMIT 1;
 UPDATE quotes
 SET state = 1
 WHERE id = (
-    SELECT id
-    FROM quotes
-    WHERE state = 0
-    ORDER BY inserted ASC
+    SELECT q.id
+    FROM quotes q
+    LEFT JOIN type t on q.type=t.id
+    WHERE q.state = 0
+    and t.name=?
+    ORDER BY q.inserted ASC
     LIMIT 1
-)
-AND type = (
-    SELECT id
-    FROM type
-    WHERE name = ?
 );
